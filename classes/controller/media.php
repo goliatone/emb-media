@@ -1,12 +1,20 @@
 <?php defined('SYSPATH') or die('No direct script access.');
-
 /**
- * TODO 
- * - Cache. DONE
- * - Minify. DONE.
- * - Move to module. DONE.
- * - Recognize files that have php and have variables.(?)
- * - Return a 404 status if not found. DONE
+ * 
+ *
+ * @package    	Media
+ * @category	Controller
+ * @author 		Emiliano Burgos <hello@goliatone.com>
+ * @copyright  	(c) 20011 Emiliano Burgos
+ * @license    	http://kohanaphp.com/license
+ * 
+ * ####TODO 
+ * 
+ * - Cache. DONE 
+ * - Minify. DONE. 
+ * - Move to module. DONE. 
+ * - Recognize files that have php and have variables.(?) 
+ * - Return a 404 status if not found. DONE 
  * - Move heavy load to Media helper: method to find file, method to set headers.
  */
 class Controller_Media extends Controller
@@ -42,21 +50,21 @@ class Controller_Media extends Controller
 		
 		$this->media->request($this->request);
 		
+		//REFACTOR Move to media heleper
 		//given an url: http://example.com/media/css/base-0.0.2.css
 		$file = $this->request->param('file'); //file css/base  
 		$sep  = $this->request->param('sep');  //sep -
 		$uid  = $this->request->param('uid');  //uid 0.0.2
 		$ext  = $this->request->param('ext');  //ext css
 		
-		GBugger::log("file $file sep $sep uid $uid ext $ext");
-		
+		//GBugger::log("file $file sep $sep uid $uid ext $ext");
+		$this->media->filename;
 		Kohana::$log->add(Log::INFO, 'enter serve action');
 		
+						  //| REFACTOR Move to media heleper
 		if (! $filepath = Kohana::find_file($this->config->source_dir, $file, $ext))
-		//if ($filepath = Theme::find_file($this->config->source_dir, $file, $ext))
-		//if ($filepath = call_user_func_array(array('Theme', 'find_file'), array($this->config->source_dir, $file, $ext)))
         {
-			Kohana::$log->add(Log::ERROR, 'File '.$file.'.'.$ext.' could not we loaded.');
+			Kohana::$log->add(Log::ERROR, "File {$this->media->file_name()} could not we loaded.");
 			//File not found. Send 404 status.
         	$this->response->status(404);		
 			return;			           
@@ -98,7 +106,7 @@ class Controller_Media extends Controller
 	}
 	
 	/**
-	 * 
+	 * REFACTOR Move to media heleper
 	 */
 	private function _create_cache($filepath,$content)
 	{
@@ -123,7 +131,7 @@ class Controller_Media extends Controller
 		}
 	}
 	/**
-	 * 
+	 * REFACTOR Move to media heleper
 	 * @private
 	 */
 	private function _format_GMT($timestamp)

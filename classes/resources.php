@@ -1,13 +1,16 @@
-<?php 
-defined('SYSPATH') or die('No direct script access.');
-
+<?php defined('SYSPATH') or die('No direct script access.');
 /**
  * Helper class to manage insertion of media in site.
+ *
+ * @package    	Media
+ * @author 		Emiliano Burgos <hello@goliatone.com>
+ * @copyright  	(c) 20011 Emiliano Burgos
+ * @license    	http://kohanaphp.com/license
  * 
- * TODO	Implement order system and sorting, to give weight to elements.
- * TODO	Refactor, remove static methods and move implementation into Core_Resources  
+ * ####TODO 
  * 
- * 
+ * - Implement order system and sorting, to give weight to elements.
+ * - Refactor, remove static methods and move implementation into Core_Resources 
  */
 class Resources
 {
@@ -17,7 +20,7 @@ class Resources
 	const JS_HEADER  = 'header';
 	
 	/**
-	 * 
+	 * @const string Signifies a JS positining region: footer.
 	 */
 	const JS_FOOTER  = 'footer';
 	
@@ -33,26 +36,24 @@ class Resources
 	private static $_instance;
 	
 	/**
-	 * 
+	 * @var array Holds all meta tags.
 	 */
     protected $_metas = array();
     
 	/**
-	 * 
+	 * @var array Holds all CSS styles.
 	 */
     protected $_styles = array();
     
 	/**
-	 * 
-	 */
-    protected $_snippets = array();
-    
-	/**
-	 * 
+	 * @var array Holds all JS scripts and snippets.
 	 */
     protected $_scripts = array('header'=>array(), 'footer'=>array(),'snippets' => array());
 	
-	
+	/**
+	 * 
+	 * @private
+	 */
     private function __construct() 
     {
     	// A private constructor; prevents direct creation of object
@@ -64,6 +65,7 @@ class Resources
 	 * Collect initial resources from config.
 	 * 
 	 * @private
+	 * @return void
 	 */
 	private function _configure()
 	{
@@ -82,6 +84,10 @@ class Resources
 		}
 	}
 	
+	/**
+	 * 
+	 * @return Resources
+	 */
     public static function instance() 
     {
         if (!isset(self::$_instance)) {
@@ -93,7 +99,9 @@ class Resources
     }
 	
 	/**
+	 * Will output all metadata formated in their wrapping tags.
 	 * 
+	 * @return string HTML formated meta tag list.
 	 */
 	public static function get_metadata()
 	{
@@ -101,7 +109,9 @@ class Resources
 	}
 	
 	/**
+	 * Will output all CSS links.
 	 * 
+	 * @return string HTML formated CSS link list.
 	 */
 	public static function get_styles()
 	{
@@ -109,7 +119,11 @@ class Resources
 	}
 	
 	/**
+	 * Tells wheter a certain location has associated scripts. 
+	 * There are three posible regions, <code>JS_HEADER</code>, <code>JS_FOOTER</code>, and <code>JS_SNIPPET</code>
 	 * 
+	 * @param string $location Script location in layout.
+	 * @return boolean Wheter a certain location has associated scripts.
 	 */
 	public static function has_scripts($location)
 	{
@@ -117,18 +131,23 @@ class Resources
 	}
 	
 	/**
-	 * 
+	 * @param string $location Script location in layout.
+	 * @return string HTML formated JS link or snippet list.
 	 */
 	public static function get_scripts($location)
 	{
 		if( ! self::instance()->has_scripts($location)) return '';
 		
-		if( $location === 'snippets') echo HTML::snippets(self::instance()->scripts[$location], NULL, TRUE);
+		if( $location === self::JS_SNIPPET) echo HTML::snippets(self::instance()->scripts[$location], NULL, TRUE);
 		else echo HTML::scripts(self::instance()->scripts[$location], NULL, TRUE);
 	}
 	
 	/**
+	 * @param string $name	Metadata name.
+	 * @param string $content	Metadata content.
+	 * @param string $overwrite	Should we overwrite or append.
 	 * 
+	 * @return Resources
 	 */
 	public function metadata($name,$content, $overwrite = TRUE )
 	{
@@ -149,21 +168,29 @@ class Resources
 			$content = implode(',', $content);
 			self::instance()->_metas = array($name => $content);
 		}		
+		
+		return $this;
 		 
 	}
 	
 	/**
 	 * 
-	 * @param object $script
-	 * @return 
+	 * @param mixed $script
+	 * @param string $location 
+	 * 
+	 * @return Resources
 	 */
 	public function js($script, $location = 'header')
 	{
 		self::instance()->_scripts = Arr::merge( self::instance()->_scripts, array($location=>array($script)));
+		
+		return $this;
 	}
 	
 	/**
-	 * 
+	 * @param 	string 	$heref 	Href to the CSS stylesheet.	
+	 * @param 	string	$media	CSS media type. i.e. screen,print
+	 * @return 	Resources
 	 */
     public function css($href, $media = 'screen')
 	{	
@@ -173,8 +200,16 @@ class Resources
 		}*/
 		
 		self::instance()->_styles = array_merge( self::instance()->_styles, array($href => $media));
+		
+		return $this;
 	}	
 	
+	
+	/**
+	 * PHP magic getter method.
+	 * 
+	 * @private
+	 */
 	public function & __get($key)
 	{
 		$key = '_'.$key;

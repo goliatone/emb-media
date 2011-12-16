@@ -1,5 +1,12 @@
-<?php 
-
+<?php defined('SYSPATH') or die('No direct script access.');
+/**
+ *
+ * @package    	Media
+ * @category	Core
+ * @author 		Emiliano Burgos <hello@goliatone.com>
+ * @copyright  	(c) 20011 Emiliano Burgos
+ * @license    	http://kohanaphp.com/license
+ */
 abstract class Core_HTML extends Kohana_HTML {
 	
 	

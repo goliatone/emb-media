@@ -1,8 +1,12 @@
-<?php 
-defined('SYSPATH') OR die('No direct access allowed.');
-
+<?php defined('SYSPATH') OR die('No direct access allowed.');
 /**
  * Media helper. It takes the workload to check for updates.
+ *
+ * @package    	Media
+ * @category	Core
+ * @author 		Emiliano Burgos <hello@goliatone.com>
+ * @copyright  	(c) 20011 Emiliano Burgos
+ * @license    	http://kohanaphp.com/license
  */
 abstract class Core_Media
 {
@@ -107,7 +111,7 @@ abstract class Core_Media
 	}
 	
 	/**
-	 * 
+	 * @param 	string 	$file_path
 	 */
 	public function compress($file_path = NULL)
 	{
@@ -160,6 +164,9 @@ abstract class Core_Media
 		}
 	}
 	
+	/**
+	 * 
+	 */
 	public function smushit($file)
 	{
         include Kohana::find_file($this->config->smushit['vendor'],$this->config->smushit['file_path']);
@@ -181,13 +188,15 @@ abstract class Core_Media
 
     
     /**
+	 * REFACTOR Remove, not used.
+	 *
      * Gzip compression of the file
      */
     public function gzip()
     {
         if (Request::accept_encoding('gzip'))
         {
-            $this->filename = $this->filename.'_gzip';
+            $this->filename = $this->file_name().'_gzip';
             
             $this->headers['Content-Encoding'] = 'gzip';
             
