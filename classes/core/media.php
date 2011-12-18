@@ -11,67 +11,62 @@
 abstract class Core_Media
 {
 
-    /**
-     * @var     string  default instance name
-     */
-    public static $default = 'default';
-    
-    /**
-     * @var     array   Media class instances
-     */
-    public static $instances = array();
-    
-    /**
-     * @var     array   Headers array
-     */
-    public $headers = array();
-    
 	/**
-	 * @var
+	 * @var	Kohana_Config
 	 */
 	public $config = FALSE;
+	
+	/**
+	 * @var string Mime type of content 
+	 */
+	public $mime;
+	
+	/**
+	 * @var array
+	 */
+	protected $_comppression_extensions = array('js' => 'compress_yui','css' => 'compress_yui','jp' => 'smushit','png' => 'smushit');
 	
 	/**
 	 * @var  Request  Request that created the controller
 	 */
 	protected $_request;
 	
+	/**
+	 * @var string 
+	 */
 	protected $_file_path;
 	
+	/**
+	 * 
+	 *
+	 * @var string example.com/{media/css/base}-0.0.2.css
+	 */
 	protected $_file;
+	
+	/**
+	 * @var string example.com/media/css/base({-})0.0.2.css
+	 */
 	protected $_sep;
+	
+	/**
+	 * @var string example.com/media/css/base-({0.0.2}).css
+	 */
 	protected $_uid;
+	
+	/**
+	 * @var string example.com/media/css/base-0.0.2.{css}
+	 */
 	protected $_ext;
 	
-    /**
-     * Returns a singleton instance of Media.
-     *
-     * @param   string  configuration group name
-     * @return  object
-     */
-    public static function instance($name = NULL)
-    {
-        if ($name === NULL)
-        {
-            // Use the default instance name
-            $name = Media::$default;
-        }
-        
-        if (!isset(Media::$instances[$name]))
-        {
-            // Load the configuration data
-            //$config = Kohana::config('media')->$name;
-			//$config = Kohana::config('media'.$name);
-            $config = Kohana::$config->load('media');
-            
-            
-            // Set static instance name to array
-            Media::$instances[$name] = new Media($config);
-        }
-        
-        return Media::$instances[$name];
-    }
-    
+	
+	/**
+	 * 
+	 */
+	public static function factory($config=NULL)
+	{
+		return new Media($config);
+	}
+	
     /**
      * Loads up the configuration
      */
@@ -97,6 +92,34 @@ abstract class Core_Media
 		return $this;
 	}
     
+	/**
+	 * 
+	 */
+	public function find_file()
+	{
+		$this->_file_path = Kohana::find_file($this->config->source_dir, $this->_file, $this->_ext);
+		return $this->_file_path;
+	}
+	
+	/**
+	 * 
+	 */
+	public function get_file()
+	{
+		$content = file_get_contents($this->_file_path);
+		
+		if($this->config->cache)
+		{
+			$this->_create_cache($this->_file_path,$content);
+		} 
+		
+		return $content;   
+	}
+	
+	/**
+	 * 
+	 * @return string	Original filename.
+	 */
 	public function file_name()
 	{
 		return $this->file.$this->sep.$this->uid.'.'.$this->ext;
@@ -117,17 +140,10 @@ abstract class Core_Media
 	{
 		 $file_path AND $this->_file_path = $file_path;
 		
-		if ($this->_ext == 'js' OR $this->_ext == 'css')
-		{
-			Kohana::$log->add(Log::INFO, 'Comressing file: '.$file_path);
-			$this->compress_yui($this->_file_path);
-						
-		}
-		else if( $this->_ext == 'jpg' OR $this->_ext == 'png')
-		{
-			Kohana::$log->add(Log::INFO, 'Comressing image file: '.$file_path);
-			$this->smushit($this->_file_path);
-		}
+		$compression_method = $this->_comppression_extensions[$this->_ext];
+		
+		$this->{$compression_method}($this->_file_path);
+		Kohana::$log->add(Log::INFO, "Comressing file: $file_path");
 	}
 	
 	/**
@@ -171,7 +187,6 @@ abstract class Core_Media
 	{
         include Kohana::find_file($this->config->smushit['vendor'],$this->config->smushit['file_path']);
 		
-		
 		try
 		{
 			$img = new SmushIt($file);
@@ -188,31 +203,6 @@ abstract class Core_Media
 
     
     /**
-	 * REFACTOR Remove, not used.
-	 *
-     * Gzip compression of the file
-     */
-    public function gzip()
-    {
-        if (Request::accept_encoding('gzip'))
-        {
-            $this->filename = $this->file_name().'_gzip';
-            
-            $this->headers['Content-Encoding'] = 'gzip';
-            
-            if (!$this->is_cached($this->filename))
-            {
-                $this->content = $this->write(gzencode($this->content));
-            }
-        }
-        
-        return $this;
-    }    
-    
-    
-   
-    
-    /**
      * Write contents to cache filename
      *
      * @param   string  $content
@@ -227,7 +217,45 @@ abstract class Core_Media
             return $content;
         }
     }
-
+	
+	/**
+	 * 
+	 *
+	 */
+	private function _create_cache($filepath,$content)
+	{
+		// Save the contents to the public directory for future requests
+		$public = $this->config->output_dir.DIRECTORY_SEPARATOR.$this->file_name();
+		$directory = dirname($public);
+		
+		if ( ! is_dir($directory))
+		{
+			// Recursively create the directories needed for the file
+			mkdir($directory.'/', 0777, TRUE);
+		}
+		
+		// Store file mime type
+    	$this->mime = File::mime($filepath);
+		
+		file_put_contents($public, $content);
+		
+		if($this->config->compress)
+		{
+			$this->compress($public);
+		}
+	}
+	
+	/**
+	 * @private
+	 */
+	public function format_GMT($timestamp)
+	{
+		return gmdate('D, d M Y H:i:s',$timestamp).'GMT';
+	}
+	
+	/**
+	 * PHP magic method.
+	 */
 	public function __get($value)
 	{
 		if(isset($this->{'_'.$value})) $value = '_'.$value;
