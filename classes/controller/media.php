@@ -51,7 +51,7 @@ class Controller_Media extends Controller
         {
 			Kohana::$log->add(Log::ERROR, "File {$this->media->file_name()} could not we loaded.");
 			//File not found. Send 404 status.
-        	$this->response->status(404);		
+        	throw new HTTP_Exception_404(':file could not be loaded.', array(':file' => $this->media->file_name()));		
 			return;			           
         }
 		

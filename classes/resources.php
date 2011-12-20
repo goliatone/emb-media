@@ -8,7 +8,7 @@
  * @license    	http://kohanaphp.com/license
  * 
  * ####TODO 
- * 
+ * - Implement on demand assets and asset scope. So we can have global assets, and assets for any specific layout.
  * - Implement order system and sorting, to give weight to elements.
  * - Refactor, remove static methods and move implementation into Core_Resources 
  */
