@@ -58,6 +58,11 @@ abstract class Core_Media
 	 */
 	protected $_ext;
 	
+	/*
+	 * @var array Paths to perfomr find_file.
+	 */ 
+	protected $_paths = array('views');
+	
 	
 	/**
 	 * 
@@ -73,6 +78,12 @@ abstract class Core_Media
     public function __construct($config = NULL)
     {
     	if($config !== NULL) $this->config = $config;
+		
+		if(isset($this->config->source_dir))
+		{
+			if(is_array($this->config->source_dir)) $this->_paths = $this->config->source_dir;
+			else $this->_paths = array($this->config->source_dir);
+		} 
     }
     
 	/**
@@ -97,8 +108,24 @@ abstract class Core_Media
 	 */
 	public function find_file()
 	{
-		$this->_file_path = Kohana::find_file($this->config->source_dir, $this->_file, $this->_ext);
-		return $this->_file_path;
+		$this->_file_path = FALSE;
+		
+		foreach ($this->_paths as $dir)
+		{
+			if ($found_file = Kohana::find_file($dir, $this->_file, $this->_ext))
+			{
+				// A path has been found
+				$this->_file_path = $found_file;
+
+				// Stop searching
+				break;
+			}
+		}
+		
+		return $this->_file_path;	
+		
+		//$this->_file_path = Kohana::find_file($this->config->source_dir, $this->_file, $this->_ext);
+		//return $this->_file_path;
 	}
 	
 	/**

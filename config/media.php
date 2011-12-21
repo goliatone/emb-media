@@ -19,8 +19,9 @@ return array(
 		// Match the file extension (without the dot)
 		'ext'  => '([a-zA-Z0-9]+)$',
 	),	
-	// The directory to look for src media
-	'source_dir' => 'views',	
+	// The directory to look for src media, also can be array.
+	'source_dir' => array('views'),	
+	//'source_dir' => 'views',	
 	// The public accessible directory
 	'output_dir' => DOCROOT.'media',
 	// Write the files to the public directory when in production
