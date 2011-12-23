@@ -30,10 +30,21 @@ class Resources
 	const JS_SNIPPET = 'snippets';
 	
 	/**
+	 * 2011-12-23
+	 */
+	const DEFAULT_SCOPE = "global";
+	
+	/**
 	 * 
 	 * @var Core_Resources
 	 */
 	private static $_instance;
+	
+	/**
+	 * 2011-12-23
+	 * @var array Holds all scopes.
+	 */
+	protected $_scopes = array('global');
 	
 	/**
 	 * @var array Holds all meta tags.
@@ -44,12 +55,13 @@ class Resources
 	 * @var array Holds all CSS styles.
 	 */
     protected $_styles = array();
-    
+    	
 	/**
 	 * @var array Holds all JS scripts and snippets.
 	 */
     protected $_scripts = array('header'=>array(), 'footer'=>array(),'snippets' => array());
 	
+	 
 	/**
 	 * 
 	 * @private
@@ -69,19 +81,36 @@ class Resources
 	 */
 	private function _configure()
 	{
-		$config = Kohana::$config->load('resources');
+		$resources = Kohana::$config->load('resources');
 		
-		if(isset($config->meta))   $this->_metas   = $config->meta;
-    	if(isset($config->styles)) $this->_styles  = $config->styles;
-		
-    	if(isset($config->scripts))
+		foreach($resources as $scope => $config)
 		{
-			foreach($config->scripts as $script => $location )
+			
+			$this->_scopes[] = $scope;
+			
+			if(isset($config['meta']))
 			{
-				$this->_scripts = Arr::merge( $this->_scripts, array($location=>array($script)));
-			} 
+				if(!isset($this->_metas[$scope])) $this->_metas[$scope] = array();
+				$this->_metas[$scope]   = $config['meta'];
+			} else die( "We don't have fuckig meta");
+			
+	    	if(isset($config['styles']))
+			{
+				if(!isset($this->_styles[$scope])) $this->_styles[$scope] = array();
+				$this->_styles[$scope]  = $config['styles'];
+			}
+			
+	    	if(isset($config['scripts']))
+			{
+				if(!isset($this->_scripts[$scope])) $this->_scripts[$scope] = array('header'=>array(), 'footer'=>array(),'snippets' => array());
 				
-		}
+				foreach($config['scripts'] as $script => $location )
+				{
+					$this->_scripts[$scope] = Arr::merge( $this->_scripts[$scope], array($location=>array($script)));
+				} 
+					
+			}
+		}			
 	}
 	
 	/**
@@ -103,9 +132,12 @@ class Resources
 	 * 
 	 * @return string HTML formated meta tag list.
 	 */
-	public static function get_metadata()
+	public static function get_metadata($scope = "global", $merge = TRUE)
 	{
-		echo HTML::metadata( self::instance()->metas);  
+		$scripts = self::instance()->_metas[$scope];
+		if($scope != "global" && $merge) $scripts = Arr::merge($scripts, self::instance()->_metas['global']);
+		
+		echo HTML::metadata($scripts);  
 	}
 	
 	/**
@@ -113,9 +145,12 @@ class Resources
 	 * 
 	 * @return string HTML formated CSS link list.
 	 */
-	public static function get_styles()
+	public static function get_styles($scope = "global", $merge = TRUE)
 	{
-		echo HTML::styles( self::instance()->styles);
+		$scripts = self::instance()->_styles[$scope];
+		if($scope != "global" && $merge) $scripts = Arr::merge($scripts, self::instance()->_styles['global']);
+		
+		echo HTML::styles( $scripts );
 	}
 	
 	/**
@@ -125,21 +160,29 @@ class Resources
 	 * @param string $location Script location in layout.
 	 * @return boolean Wheter a certain location has associated scripts.
 	 */
-	public static function has_scripts($location)
+	public static function has_scripts($location, $scope = "global", $merge = TRUE)
 	{
-		return (count(self::instance()->scripts[$location]) > 0);
+		$scripts = self::instance()->_scripts[$scope][$location];
+		
+		if($scope != "global" && $merge) $scripts = Arr::merge($scripts, self::instance()->_scripts['global'][$location]);
+		
+		return (count($scripts) > 0);
 	}
 	
 	/**
 	 * @param string $location Script location in layout.
 	 * @return string HTML formated JS link or snippet list.
 	 */
-	public static function get_scripts($location)
+	public static function get_scripts($location, $scope = "global", $merge = TRUE)
 	{
-		if( ! self::instance()->has_scripts($location)) return '';
+		if( ! self::instance()->has_scripts($location, $scope)) return '';
 		
-		if( $location === self::JS_SNIPPET) echo HTML::snippets(self::instance()->scripts[$location], NULL, TRUE);
-		else echo HTML::scripts(self::instance()->scripts[$location], NULL, TRUE);
+		$scripts = self::instance()->_scripts[$scope][$location];
+		
+		if($scope != "global" && $merge) $scripts = Arr::merge($scripts,self::instance()->_scripts['global'][$location]);
+		
+		if( $location === self::JS_SNIPPET) echo HTML::snippets($scripts, NULL, TRUE);
+		else echo HTML::scripts($scripts, NULL, TRUE);
 	}
 	
 	/**
@@ -149,24 +192,26 @@ class Resources
 	 * 
 	 * @return Resources
 	 */
-	public function metadata($name,$content, $overwrite = TRUE )
+	public function metadata($name,$content, $overwrite = TRUE, $scope = "global" )
 	{
-		if( empty(self::instance()->_metas[$name]))
+		if(! isset(self::instance()->_metas[$scope])) self::instance()->_metas[$scope] = array();
+			
+		if( empty(self::instance()->_metas[$scope][$name]))
 		{
-			self::instance()->_metas[$name] = $content;
+			self::instance()->_metas[$scope][$name] = $content;
 		} 
 		elseif($overwrite)
 		{
-			self::instance()->_metas = Arr::overwrite(self::instance()->_metas, array($name => $content));	
+			self::instance()->_metas[$scope] = Arr::overwrite(self::instance()->_metas[$scope], array($name => $content));	
 		}
 		else
 		{
 			//thought for keyword metadata, to merge default values.
 			$content = explode(',', $content);
-			$old 	 = explode(',', self::instance()->_metas[$name]);
+			$old 	 = explode(',', self::instance()->_metas[$scope][$name]);
 			$content = Arr::merge($old, $content);
 			$content = implode(',', $content);
-			self::instance()->_metas = array($name => $content);
+			self::instance()->_metas[$scope] = array($name => $content);
 		}		
 		
 		return $this;
@@ -180,9 +225,11 @@ class Resources
 	 * 
 	 * @return Resources
 	 */
-	public function js($script, $location = 'header')
+	public function js($script, $location = 'header', $scope = "global")
 	{
-		self::instance()->_scripts = Arr::merge( self::instance()->_scripts, array($location=>array($script)));
+		if(! isset(self::instance()->_scripts[$scope])) self::instance()->_scripts[$scope] = array();
+		
+		self::instance()->_scripts[$scope] = Arr::merge( self::instance()->_scripts[$scope], array($location=>array($script)));
 		
 		return $this;
 	}
@@ -192,14 +239,15 @@ class Resources
 	 * @param 	string	$media	CSS media type. i.e. screen,print
 	 * @return 	Resources
 	 */
-    public function css($href, $media = 'screen')
+    public function css($href, $media = 'screen', $scope = "global")
 	{	
 		/*if ( ! 'http://' == substr($href, 0, 7)   )
         { 
 				$href = URL::site($href,TRUE);
 		}*/
+		if(! isset(self::instance()->_styles[$scope])) self::instance()->_styles[$scope] = array();
 		
-		self::instance()->_styles = array_merge( self::instance()->_styles, array($href => $media));
+		self::instance()->_styles[$scope] = array_merge( self::instance()->_styles[$scope], array($href => $media));
 		
 		return $this;
 	}	
