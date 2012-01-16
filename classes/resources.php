@@ -92,7 +92,7 @@ class Resources
 			{
 				if(!isset($this->_metas[$scope])) $this->_metas[$scope] = array();
 				$this->_metas[$scope]   = $config['meta'];
-			} else die( "We don't have fuckig meta");
+			}
 			
 	    	if(isset($config['styles']))
 			{
